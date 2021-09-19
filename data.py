@@ -1,6 +1,6 @@
 import pandas as pd
 import os.path
-import queue
+# import queue
 import quandl
 
 from abc import ABCMeta, abstractmethod
@@ -8,9 +8,11 @@ from event import MarketEvent
 from datetime import datetime
 from enum import Enum
 
+
 class DataSource(Enum):
     NASDAQ = "NASDAQ"
     YAHOO = "YAHOO"
+
 
 class DataHandler(metaclass=ABCMeta):
     __metaclass__ = ABCMeta
@@ -22,6 +24,7 @@ class DataHandler(metaclass=ABCMeta):
     @abstractmethod
     def update_latest_data(self):
         raise NotImplementedError
+
 
 class HistoricCSVDataHandler(DataHandler):
     def __init__(self, events, csv_dir, symbol_list, source=DataSource.NASDAQ):
@@ -56,7 +59,9 @@ class HistoricCSVDataHandler(DataHandler):
             self.latest_symbol_data[symbol] = []
 
         for symbol in self.symbol_list:
-            self.symbol_dataframe[symbol] = self.symbol_data[symbol].reindex(index=combined_index, method='pad')
+            self.symbol_dataframe[symbol] = self.symbol_data[symbol].reindex(
+                index=combined_index, method='pad'
+            )
             self.all_data[symbol] = self.symbol_dataframe[symbol].copy()
             self.symbol_data[symbol] = self.symbol_dataframe[symbol].iterrows()
 
@@ -86,7 +91,7 @@ class HistoricCSVDataHandler(DataHandler):
         dataframe = None
         for symbol in self.symbol_list:
             df = self.symbol_dataframe[symbol]
-            if dataframe == None:
+            if dataframe is None:
                 dataframe = pd.DataFrame(df['Close'])
                 dataframe.columns = [symbol]
             else:
@@ -97,10 +102,20 @@ class HistoricCSVDataHandler(DataHandler):
         return dataframe
 
     def parse_yahoo_csv(self, symbol):
-        self.symbol_data[symbol] = pd.read_csv(os.path.join(self.csv_dir, symbol + '.csv'), header=0, index_col=0, parse_dates=True)
+        self.symbol_data[symbol] = pd.read_csv(
+            os.path.join(self.csv_dir, symbol + '.csv'),
+            header=0,
+            index_col=0,
+            parse_dates=True
+        )
 
     def parse_nasdaq_csv(self, symbol):
-        tmp = pd.read_csv(os.path.join(self.csv_dir, symbol + '.csv'), header=0, index_col=0, parse_dates=True).iloc[::-1]
+        tmp = pd.read_csv(
+            os.path.join(self.csv_dir, symbol + '.csv'),
+            header=0,
+            index_col=0,
+            parse_dates=True
+        ).iloc[::-1]
         self.symbol_data[symbol] = pd.DataFrame(tmp['Closing price'])
         self.symbol_data[symbol].columns = ['Close']
         # self.symbol_data[symbol]['Open'] = tmp['Closing price']
@@ -109,16 +124,19 @@ class HistoricCSVDataHandler(DataHandler):
         self.symbol_data[symbol]['Close'] = tmp['Closing price']
         # self.symbol_data[symbol]['Adj Close'] = tmp['Closing price']
         # self.symbol_data[symbol]['Volume'] = tmp['Total volume']
-        self.symbol_data[symbol] = self.symbol_data[symbol][self.symbol_data[symbol]['Close'] > 0.0]
+        self.symbol_data[symbol] = (self.symbol_data[symbol]
+                                    [self.symbol_data[symbol]['Close'] > 0.0])
+
 
 class QuandlDataHandler(DataHandler):
-    def __init__(self, events, symbol_list, api_key, start_date='2000-01-01', end_date=None):
+    def __init__(self, events, symbol_list, api_key, start_date='2000-01-01',
+                 end_date=None):
         quandl.ApiConfig.api_key = api_key
         self.events = events
         self.symbol_list = symbol_list
         self.start_date = start_date
         self.end_date = end_date
-        if self.end_date == None:
+        if self.end_date is None:
             self.end_date = datetime.today().strftime('%Y-%m-%d')
 
         self.symbol_data = {}
@@ -145,7 +163,10 @@ class QuandlDataHandler(DataHandler):
             self.latest_symbol_data[symbol] = []
 
         for symbol in self.symbol_list:
-            self.symbol_dataframe[symbol] = self.symbol_data[symbol].reindex(index=combined_index, method='pad')
+            self.symbol_dataframe[symbol] = self.symbol_data[symbol].reindex(
+                index=combined_index,
+                method='pad'
+            )
             self.all_data[symbol] = self.symbol_dataframe[symbol].copy()
             self.symbol_data[symbol] = self.symbol_dataframe[symbol].iterrows()
 
@@ -175,7 +196,7 @@ class QuandlDataHandler(DataHandler):
         dataframe = None
         for symbol in self.symbol_list:
             df = self.symbol_dataframe[symbol]
-            if dataframe == None:
+            if dataframe is None:
                 dataframe = pd.DataFrame(df['Close'])
                 dataframe.columns = [symbol]
             else:
@@ -186,8 +207,21 @@ class QuandlDataHandler(DataHandler):
         return dataframe
 
     def _get_nasdaq_data(self, symbol):
-        self.symbol_data[symbol] = quandl.get('NASDAQOMX/' + symbol, start_date=self.start_date, end_date=self.end_date)
-        self.symbol_data[symbol].drop(columns=['High', 'Low', 'Total Market Value', 'Dividend Market Value'], inplace=True)
+        self.symbol_data[symbol] = quandl.get(
+            'NASDAQOMX/' + symbol,
+            start_date=self.start_date,
+            end_date=self.end_date
+        )
+        self.symbol_data[symbol].drop(
+            columns=[
+                'High',
+                'Low',
+                'Total Market Value',
+                'Dividend Market Value'
+            ],
+            inplace=True
+        )
         self.symbol_data[symbol].columns = ['Close']
         self.symbol_data[symbol].index.names = ['Date']
-        self.symbol_data[symbol] = self.symbol_data[symbol][self.symbol_data[symbol]['Close'] > 0.0]
+        self.symbol_data[symbol] = (self.symbol_data[symbol]
+                                    [self.symbol_data[symbol]['Close'] > 0.0])

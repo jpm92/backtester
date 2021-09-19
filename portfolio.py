@@ -1,12 +1,12 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import queue
-
+# import queue
 from abc import ABCMeta, abstractmethod
-from math import floor
+# from math import floor
 from matplotlib import style
-from event import FillEvent, OrderEvent
+from event import OrderEvent  # FillEvent
 from performance import calculate_sharpe_ratio, calculate_drawdowns
+
 
 class Portfolio(metaclass=ABCMeta):
     @abstractmethod
@@ -16,6 +16,7 @@ class Portfolio(metaclass=ABCMeta):
     @abstractmethod
     def update_fill(self, event):
         raise NotImplementedError
+
 
 class NaivePortfolio(Portfolio):
     def __init__(self, data, events, strategy_name, initial_capital=1.0):
@@ -39,10 +40,12 @@ class NaivePortfolio(Portfolio):
         return holdings
 
     def update_timeindex(self, event):
-        data = {symbol: self.data.get_latest_data(symbol) for symbol in self.symbol_list}
+        data = {symbol: self.data.get_latest_data(symbol)
+                for symbol in self.symbol_list}
         datetime = data[self.symbol_list[0]][0][self.data.time_col]
 
-        positions = {symbol: self.current_positions[symbol] for symbol in self.symbol_list}
+        positions = {symbol: self.current_positions[symbol]
+                     for symbol in self.symbol_list}
         positions['datetime'] = datetime
         self.all_positions.append(positions)
 
@@ -53,7 +56,8 @@ class NaivePortfolio(Portfolio):
         holdings['total'] = self.current_holdings['cash']
 
         for symbol in self.symbol_list:
-            market_value = self.current_positions[symbol] * data[symbol][0][self.data.price_col]
+            market_value = (self.current_positions[symbol] *
+                            data[symbol][0][self.data.price_col])
             holdings[symbol] = market_value
             holdings['total'] += market_value
 
@@ -75,7 +79,9 @@ class NaivePortfolio(Portfolio):
         elif fill.direction == 'SELL':
             fill_dir = -1
 
-        fill_cost = self.data.get_latest_data(fill.symbol)[0][self.data.price_col]
+        fill_cost = self.data.get_latest_data(
+            fill.symbol
+            )[0][self.data.price_col]
         cost = fill_cost * fill_dir * fill.quantity
         self.current_holdings[fill.symbol] += cost
         self.current_holdings['commission'] += fill.commission
@@ -132,10 +138,12 @@ class NaivePortfolio(Portfolio):
         sharpe_ratio = calculate_sharpe_ratio(returns)
         max_dd, dd_duration = calculate_drawdowns(pnl)
 
-        stats = [("Total Return", "%0.2f%%" % ((total_return - 1.0) * 100.0)),
-                ("Sharpe Ratio", "%0.2f" % sharpe_ratio),
-                ("Max Drawdown", "%0.2f%%" % (max_dd * 100.0)),
-                ("Drawdown Duration", "%d" % dd_duration)]
+        stats = [
+            ("Total Return", "%0.2f%%" % ((total_return - 1.0) * 100.0)),
+            ("Sharpe Ratio", "%0.2f" % sharpe_ratio),
+            ("Max Drawdown", "%0.2f%%" % (max_dd * 100.0)),
+            ("Drawdown Duration", "%d" % dd_duration)
+            ]
 
         return stats
 

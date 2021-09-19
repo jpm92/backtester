@@ -1,8 +1,9 @@
-import pandas as pd
+# import pandas as pd
 import math
-from datetime import datetime
+# from datetime import datetime
 from event import SignalEvent
 from strategies.strategy import Strategy
+
 
 class StopLossStrategy(Strategy):
     def __init__(self, data, events, portfolio, stop_loss_percentage):
@@ -36,24 +37,45 @@ class StopLossStrategy(Strategy):
                 data = self.data.get_latest_data(symbol)
                 if data is not None and len(data) > 0:
                     latest_close = data[-1][self.data.price_col]
-                    if self.bought[symbol] == False and latest_close > self.stop_loss[symbol] / self.stop_loss_percentage:
-                        quantity = math.floor(self.portfolio.current_holdings['cash'] / latest_close)
-                        signal = SignalEvent(symbol, data[-1][self.data.time_col], 'LONG', quantity)
+                    if (self.bought[symbol] is False
+                            and latest_close > self.stop_loss[symbol] /
+                            self.stop_loss_percentage):
+                        quantity = math.floor(
+                            self.portfolio.current_holdings['cash'] /
+                            latest_close)
+                        signal = SignalEvent(
+                            symbol,
+                            data[-1][self.data.time_col],
+                            'LONG',
+                            quantity)
                         self.events.put(signal)
                         self.bought[symbol] = True
-                        self.stop_loss[symbol] = self.stop_loss_percentage * latest_close
-                        print("Long:", data[-1][self.data.time_col], latest_close)
+                        self.stop_loss[symbol] = self.stop_loss_percentage \
+                            * latest_close
+                        print("Long:",
+                              data[-1][self.data.time_col],
+                              latest_close)
                         print("Stop Loss:", self.stop_loss[symbol])
-                    elif self.bought[symbol] == True:
+                    elif self.bought[symbol] is True:
                         if latest_close <= self.stop_loss[symbol]:
                             quantity = self.portfolio.current_positions[symbol]
-                            signal = SignalEvent(symbol, data[-1][self.data.time_col], 'EXIT', quantity)
+                            signal = SignalEvent(
+                                symbol,
+                                data[-1][self.data.time_col], 'EXIT', quantity)
                             self.events.put(signal)
                             self.bought[symbol] = False
-                            print("Exit:", data[-1][self.data.time_col], latest_close)
+                            print("Exit:",
+                                  data[-1][self.data.time_col],
+                                  latest_close)
                             print("Stop Loss:", self.stop_loss[symbol])
                         else:
                             data = self.data.get_latest_data(symbol, N=2)
                             if data is not None and len(data) > 1:
-                                if data[-1][self.data.price_col] > data[0][self.data.price_col] and self.stop_loss_percentage * data[-1][self.data.price_col] > self.stop_loss[symbol]:
-                                    self.stop_loss[symbol] = self.stop_loss_percentage * data[-1][self.data.price_col]
+                                if (data[-1][self.data.price_col] >
+                                        data[0][self.data.price_col] and
+                                        self.stop_loss_percentage *
+                                        data[-1][self.data.price_col] >
+                                        self.stop_loss[symbol]):
+                                    self.stop_loss[symbol] = (
+                                        self.stop_loss_percentage *
+                                        data[-1][self.data.price_col])

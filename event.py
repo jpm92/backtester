@@ -16,6 +16,7 @@ class SignalEvent(Event):
         self.quantity = quantity
 
 
+# TODO: Añadir evento tipo "permuta" (cambiar una cripto por otra)
 class OrderEvent(Event):
     def __init__(self, symbol, order_type, quantity, direction):
         self.type = 'ORDER'
